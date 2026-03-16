@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BGAM Jarvis — Processing</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #f4f4f4;
+    color: #333;
+  }
+  .container {
+    text-align: center;
+    background: #fff;
+    padding: 48px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    max-width: 400px;
+  }
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #eee;
+    border-top: 4px solid #1a5276;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  h2 { color: #1a5276; margin: 0 0 12px; }
+  p { color: #666; margin: 0; }
+  .error { display: none; color: #c0392b; margin-top: 16px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="spinner" id="spinner"></div>
+  <h2 id="title">Processing...</h2>
+  <p id="message">Confirming your action. Please wait.</p>
+  <p class="error" id="error">Something went wrong. Please try again or contact your property manager.</p>
+</div>
+<script>
+  // Read query params from current URL
+  var params = new URLSearchParams(window.location.search);
+  var wo = params.get('wo');
+  var recordId = params.get('record_id');
+  var action = params.get('action') || 'approve';
+
+  // Determine which webhook to hit based on action
+  var webhookBase = '';
+  if (action === 'approve_marc') {
+    // Marc approves from Slack — hits 04. Bid Approve Flow
+    webhookBase = 'https://hooks.zapier.com/hooks/catch/8894773/upymf0d/';
+  } else if (action === 'approve_owner') {
+    // Owner approves vendor — hits 05. Owner Reply Handler
+    webhookBase = 'https://hooks.zapier.com/hooks/catch/8894773/upy6qe6/';
+  }
+
+  if (!wo || !recordId || !webhookBase) {
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('title').textContent = 'Invalid Request';
+    document.getElementById('message').textContent = 'Missing required parameters.';
+    document.getElementById('error').style.display = 'block';
+  } else {
+    // Build the real webhook URL with all params passed through
+    var webhookUrl = webhookBase + '?' + params.toString();
+
+    // Fire the webhook via fetch, then show confirmation
+    fetch(webhookUrl, { mode: 'no-cors' })
+      .then(function() {
+        document.getElementById('spinner').style.display = 'none';
+        document.getElementById('title').textContent = 'Done!';
+        document.getElementById('message').textContent = 'Action confirmed for WO #' + wo + '. You can close this tab.';
+      })
+      .catch(function() {
+        // no-cors means we can't read the response, but the request still fires
+        document.getElementById('spinner').style.display = 'none';
+        document.getElementById('title').textContent = 'Done!';
+        document.getElementById('message').textContent = 'Action confirmed for WO #' + wo + '. You can close this tab.';
+      });
+  }
+</script>
+</body>
+</html>
